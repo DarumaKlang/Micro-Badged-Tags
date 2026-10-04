@@ -8,22 +8,25 @@ import {
   type BadgeSize,
   type BadgeVariant,
 } from "@/components/tag/BadgedTag";
-import {
-  SplitBadgedTag,
-  type SplitBadgeSize,
-} from "@/components/tag/SplitBadgedTag";
+import { SplitBadgedTag } from "@/components/tag/SplitBadgedTag";
 import { BRAND_ICONS, type BrandIconSlug } from "@/lib/brand-icons";
 import { useCopyToClipboard } from "@/lib/clipboard";
 import {
   buildMarkdown,
+  buildReactSnippet,
+  buildShieldsAlt,
   buildShieldsUrl,
   SHIELDS_STYLE_LABELS,
   SHIELDS_STYLES,
   type ShieldsStyle,
+  type SplitBadgeOptions,
+  type SplitBadgeSize,
 } from "@/lib/shields";
 
 type StyleMode = "solid" | "split";
 type OutputTab = "react" | "markdown";
+/** Whether the left segment shows a brand icon or plain text. */
+type LeftMode = "icon" | "text";
 
 const tagVariants: BadgeVariant[] = [
   "default",
@@ -69,6 +72,7 @@ const examples: { text: string; variant?: BadgeVariant; size?: BadgeSize }[] = [
 
 const DEFAULT_SPLIT_ICON: BrandIconSlug = "github";
 const DEFAULT_TEXT_COLOR = "#2563EB";
+const DEFAULT_LEFT_TEXT = "Beta";
 
 export default function Home() {
   const [text, setText] = useState("Verified");
@@ -79,8 +83,10 @@ export default function Home() {
     useState<BadgeVariant>("default");
   const [selectedSize, setSelectedSize] = useState<BadgeSize>("md");
 
+  const [leftMode, setLeftMode] = useState<LeftMode>("icon");
   const [icon, setIcon] = useState<BrandIconSlug>(DEFAULT_SPLIT_ICON);
-  const [iconColor, setIconColor] = useState<string>(
+  const [leftText, setLeftText] = useState(DEFAULT_LEFT_TEXT);
+  const [leftColor, setLeftColor] = useState<string>(
     `#${BRAND_ICONS[DEFAULT_SPLIT_ICON].hex}`,
   );
   const [textColor, setTextColor] = useState<string>(DEFAULT_TEXT_COLOR);
@@ -91,22 +97,29 @@ export default function Home() {
 
   const isEmpty = text.trim().length === 0;
 
-  const splitOptions = useMemo(
+  const splitOptions = useMemo<SplitBadgeOptions>(
     () => ({
       text: text.trim(),
-      icon,
-      iconColor,
+      left:
+        leftMode === "icon"
+          ? { kind: "icon", icon }
+          : { kind: "text", text: leftText },
+      leftColor,
       textColor,
       style: shieldsStyle,
     }),
-    [text, icon, iconColor, textColor, shieldsStyle],
+    [text, leftMode, icon, leftText, leftColor, textColor, shieldsStyle],
   );
 
   const solidSnippet = `<BadgedTag text="${text}" variant="${selectedVariant}" size="${selectedSize}" />`;
-  const splitSnippet = `<SplitBadgedTag\n  text="${text.trim()}"\n  icon="${icon}"\n  iconColor="${iconColor}"\n  textColor="${textColor}"\n  size="${selectedSize}"\n/>`;
+  const splitSnippet = buildReactSnippet(
+    splitOptions,
+    selectedSize as SplitBadgeSize,
+  );
 
   const markdownSnippet = buildMarkdown(splitOptions, link);
   const shieldsUrl = buildShieldsUrl(splitOptions);
+  const shieldsAlt = buildShieldsAlt(splitOptions);
 
   const isSplit = styleMode === "split";
 
@@ -120,7 +133,7 @@ export default function Home() {
 
   const handleIconChange = useCallback((slug: BrandIconSlug) => {
     setIcon(slug);
-    setIconColor(`#${BRAND_ICONS[slug].hex}`);
+    setLeftColor(`#${BRAND_ICONS[slug].hex}`);
   }, []);
 
   const handleCopy = useCallback(async () => {
@@ -213,14 +226,66 @@ export default function Home() {
               <>
                 <fieldset className="mt-5">
                   <legend className="mb-2 text-sm font-medium text-slate-700">
-                    ไอคอนฝั่งซ้าย
+                    ฝั่งซ้าย
                   </legend>
-                  <IconPicker value={icon} onChange={handleIconChange} />
-                  <p className="mt-2 text-xs text-slate-400">
-                    ใช้ slug ของ Simple Icons ตัวเดียวกับที่ shields.io ใช้ จึงได้ไอคอนตรงกันทั้ง
-                    React และ Markdown
-                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(
+                      [
+                        ["icon", "ใช้ไอคอน"],
+                        ["text", "ใช้ข้อความ"],
+                      ] as const
+                    ).map(([value, label]) => (
+                      <label
+                        key={value}
+                        className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 has-checked:border-blue-500 has-checked:bg-blue-50 has-checked:font-medium"
+                      >
+                        <input
+                          type="radio"
+                          name="left-mode"
+                          value={value}
+                          checked={leftMode === value}
+                          onChange={() => setLeftMode(value)}
+                          className="accent-blue-600"
+                        />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
                 </fieldset>
+
+                {leftMode === "icon" ? (
+                  <fieldset className="mt-5">
+                    <legend className="mb-2 text-sm font-medium text-slate-700">
+                      ไอคอนฝั่งซ้าย
+                    </legend>
+                    <IconPicker value={icon} onChange={handleIconChange} />
+                    <p className="mt-2 text-xs text-slate-400">
+                      ใช้ slug ของ Simple Icons ตัวเดียวกับที่ shields.io
+                      ใช้ จึงได้ไอคอนตรงกันทั้ง React และ Markdown
+                    </p>
+                  </fieldset>
+                ) : (
+                  <div className="mt-5">
+                    <label
+                      htmlFor="left-text"
+                      className="mb-1.5 block text-sm font-medium text-slate-700"
+                    >
+                      ข้อความฝั่งซ้าย
+                    </label>
+                    <input
+                      id="left-text"
+                      type="text"
+                      value={leftText}
+                      maxLength={40}
+                      onChange={(e) => setLeftText(e.target.value)}
+                      placeholder="เช่น Beta, กำลังทำ, รออนุมัติ"
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+                    />
+                    <p className="mt-2 text-xs text-slate-400">
+                      {leftText.length}/40 · ช่องว่างแปลว่าฝั่งซ้ายไม่มีเนื้อหา
+                    </p>
+                  </div>
+                )}
 
                 <fieldset className="mt-5">
                   <legend className="mb-2 text-sm font-medium text-slate-700">
@@ -229,21 +294,21 @@ export default function Home() {
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div>
                       <label
-                        htmlFor="icon-color"
+                        htmlFor="left-color"
                         className="mb-1.5 block text-xs font-medium text-slate-500"
                       >
-                        สีฝั่งไอคอน
+                        สีฝั่งซ้าย
                       </label>
                       <div className="flex items-center gap-2 rounded-lg border border-slate-300 px-2 py-1.5">
                         <input
-                          id="icon-color"
+                          id="left-color"
                           type="color"
-                          value={iconColor}
-                          onChange={(e) => setIconColor(e.target.value)}
+                          value={leftColor}
+                          onChange={(e) => setLeftColor(e.target.value)}
                           className="size-8 cursor-pointer rounded border border-slate-200 bg-transparent"
                         />
                         <span className="font-mono text-xs text-slate-500">
-                          {iconColor}
+                          {leftColor}
                         </span>
                       </div>
                     </div>
@@ -405,10 +470,11 @@ export default function Home() {
                 <>
                   <SplitBadgedTag
                     text={text.trim()}
-                    icon={icon}
-                    iconColor={iconColor}
+                    left={splitOptions.left}
+                    leftColor={leftColor}
                     textColor={textColor}
-                    size={selectedSize}
+                    style={shieldsStyle}
+                    size={selectedSize as SplitBadgeSize}
                   />
                   <div className="flex flex-col items-center gap-1.5">
                     <span className="text-xs text-slate-400">
@@ -417,7 +483,7 @@ export default function Home() {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={shieldsUrl}
-                      alt={text.trim()}
+                      alt={shieldsAlt}
                       className="max-w-full"
                     />
                   </div>
