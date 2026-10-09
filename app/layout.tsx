@@ -13,15 +13,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Badged Tags Generator",
+  title: "Badged Tags Generator | Micro Badged Tags",
   description:
-    "สร้าง badge แบบ 2 สีพร้อมไอคอน แล้วคัดลอกโค้ด React หรือ Markdown ไปใช้ใน GitHub / Gitea",
+    "สร้าง badge แบบ Solid หรือ Split สองสี พร้อมไอคอน แล้วส่งออกเป็น React JSX หรือ Markdown สำหรับ GitHub และ Gitea",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
-      lang="en"
+      lang="th"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>

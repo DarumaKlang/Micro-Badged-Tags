@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Micro Badged Tags
 
-## Getting Started
+เครื่องมือสร้าง badge สำหรับ GitHub, Gitea และโปรเจกต์ React/Next.js เลือกได้ทั้งแบบ Solid และ Split สองสี พร้อมไอคอนหรือข้อความ แล้วดูตัวอย่างและส่งออกเป็น Markdown หรือ JSX
 
-First, run the development server:
+## เริ่มใช้งาน
+
+ต้องใช้ Node.js และ pnpm ตามเวอร์ชันที่ระบุใน `package.json`
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+เปิด [http://localhost:3000](http://localhost:3000) เพื่อสร้าง badge ในหน้าเว็บ
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+ตรวจโค้ดและ build ด้วย:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+pnpm lint
+pnpm exec tsc --noEmit
+pnpm build
+```
 
-## Learn More
+รันทดสอบการสร้างโค้ดและ Markdown ด้วย:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+pnpm test
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## รูปแบบที่ส่งออก
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Markdown** สร้างรูปภาพจาก Shields.io และเลือกใส่ลิงก์ปลายทางแบบ HTTP/HTTPS ได้
+- **React JSX** เป็นตัวอย่างการเรียกใช้ `BadgedTag` หรือ `SplitBadgedTag` ไม่ใช่ component package ที่ติดตั้งได้ทันที
+- ข้อความถูกส่งออกเป็น JSX string expressions เพื่อรองรับเครื่องหมายคำพูดและบรรทัดใหม่
 
-## Deploy on Vercel
+หากต้องการใช้ JSX ในโปรเจกต์อื่น ต้องนำ source ที่เกี่ยวข้องจาก repository นี้ไปไว้ในโปรเจกต์ปลายทางก่อน:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Solid badge: [`components/tag/BadgedTag.tsx`](./components/tag/BadgedTag.tsx)
+- Split badge: [`components/tag/SplitBadgedTag.tsx`](./components/tag/SplitBadgedTag.tsx), [`components/tag/BrandIcon.tsx`](./components/tag/BrandIcon.tsx), [`lib/brand-icons.ts`](./lib/brand-icons.ts), และชนิดข้อมูลที่อ้างอิงจาก [`lib/shields.ts`](./lib/shields.ts)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+ตัวอย่าง JSX ที่ได้เป็นการเรียกใช้ component:
+
+```tsx
+import { BadgedTag } from "@/components/tag/BadgedTag";
+
+export function Example() {
+  return <BadgedTag text={"Verified"} variant="success" size="md" />;
+}
+```
+
+สำหรับแบบ Split ให้นำเข้า `SplitBadgedTag` จาก path ที่ตรงกับตำแหน่ง source ในโปรเจกต์ปลายทางเช่นกัน
+
+## เทคโนโลยี
+
+- Next.js App Router
+- React และ TypeScript
+- Tailwind CSS
+- ไอคอนแบรนด์จาก Simple Icons
+- รูปภาพ badge สำหรับ Markdown จาก Shields.io

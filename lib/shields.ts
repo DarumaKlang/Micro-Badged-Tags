@@ -88,6 +88,23 @@ export function buildShieldsAlt(options: SplitBadgeOptions): string {
   return options.text;
 }
 
+export function isValidHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return (
+      (url.protocol === "http:" || url.protocol === "https:") &&
+      !url.username &&
+      !url.password
+    );
+  } catch {
+    return false;
+  }
+}
+
+function escapeMarkdownText(value: string): string {
+  return value.replace(/([\\`*_{}\[\]<>!])/g, "\\$1");
+}
+
 /**
  * Kept next to the URL builder so the snippet and the preview cannot drift:
  * both are derived from the same options object.
@@ -98,17 +115,17 @@ export function buildReactSnippet(
 ): string {
   const left =
     options.left.kind === "icon"
-      ? `{ kind: "icon", icon: "${options.left.icon}" }`
-      : `{ kind: "text", text: "${options.left.text.trim()}" }`;
+      ? `kind: "icon", icon: ${JSON.stringify(options.left.icon)}`
+      : `kind: "text", text: ${JSON.stringify(options.left.text.trim())}`;
 
   return [
     "<SplitBadgedTag",
-    `  text="${options.text.trim()}"`,
-    `  left={${left}}`,
-    `  leftColor="${options.leftColor}"`,
-    `  textColor="${options.textColor}"`,
-    `  style="${options.style}"`,
-    `  size="${size}"`,
+    `  text={${JSON.stringify(options.text.trim())}}`,
+    `  left={{ ${left} }}`,
+    `  leftColor={${JSON.stringify(options.leftColor)}}`,
+    `  textColor={${JSON.stringify(options.textColor)}}`,
+    `  style={${JSON.stringify(options.style)}}`,
+    `  size={${JSON.stringify(size)}}`,
     "/>",
   ].join("\n");
 }
@@ -117,7 +134,14 @@ export function buildMarkdown(
   options: SplitBadgeOptions,
   link?: string,
 ): string {
-  const image = `![${buildShieldsAlt(options)}](${buildShieldsUrl(options)})`;
+  const image = `![${escapeMarkdownText(buildShieldsAlt(options))}](${buildShieldsUrl(options)})`;
   const href = link?.trim();
-  return href ? `[${image}](${href})` : image;
+  if (!href) return image;
+  if (!isValidHttpUrl(href)) {
+    throw new Error(
+      "Badge links must use an http or https URL without embedded credentials.",
+    );
+  }
+
+  return `[${image}](<${new URL(href).href}>)`;
 }

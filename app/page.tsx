@@ -18,6 +18,7 @@ import {
   buildShieldsUrl,
   SHIELDS_STYLE_LABELS,
   SHIELDS_STYLES,
+  isValidHttpUrl,
   type ShieldsStyle,
   type SplitBadgeOptions,
   type SplitBadgeSize,
@@ -111,17 +112,21 @@ export default function Home() {
     [text, leftMode, icon, leftText, leftColor, textColor, shieldsStyle],
   );
 
-  const solidSnippet = `<BadgedTag text="${text}" variant="${selectedVariant}" size="${selectedSize}" />`;
+  const isSplit = styleMode === "split";
+  const hasInvalidUrl =
+    Boolean(link.trim()) && !isValidHttpUrl(link.trim());
+  const hasInvalidLink =
+    isSplit && outputTab === "markdown" && hasInvalidUrl;
+
+  const solidSnippet = `<BadgedTag text={${JSON.stringify(text)}} variant="${selectedVariant}" size="${selectedSize}" />`;
   const splitSnippet = buildReactSnippet(
     splitOptions,
     selectedSize as SplitBadgeSize,
   );
 
-  const markdownSnippet = buildMarkdown(splitOptions, link);
+  const markdownSnippet = hasInvalidUrl ? "" : buildMarkdown(splitOptions, link);
   const shieldsUrl = buildShieldsUrl(splitOptions);
   const shieldsAlt = buildShieldsAlt(splitOptions);
-
-  const isSplit = styleMode === "split";
 
   const snippet = isSplit
     ? outputTab === "markdown"
@@ -137,12 +142,12 @@ export default function Home() {
   }, []);
 
   const handleCopy = useCallback(async () => {
-    if (isEmpty) return;
+    if (isEmpty || hasInvalidLink) return;
     await copy(snippet);
-  }, [copy, snippet, isEmpty]);
+  }, [copy, snippet, isEmpty, hasInvalidLink]);
 
   const handleDownload = useCallback(() => {
-    if (isEmpty) return;
+    if (isEmpty || hasInvalidLink) return;
     const blob = new Blob([snippet], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -150,7 +155,7 @@ export default function Home() {
     a.download = `badged-tag-${text.trim().toLowerCase().replace(/\s+/g, "-")}.${downloadExtension}`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [snippet, text, isEmpty, downloadExtension]);
+  }, [snippet, text, isEmpty, hasInvalidLink, downloadExtension]);
 
   return (
     <div className="relative min-h-screen overflow-hidden" style={{ background: 'var(--background)' }}>
@@ -400,9 +405,14 @@ export default function Home() {
                   </label>
                   <input
                     id="badge-link"
+                    type="url"
                     value={link}
                     onChange={(e) => setLink(e.target.value)}
                     placeholder="https://example.com/docs"
+                    aria-invalid={hasInvalidLink}
+                    aria-describedby={
+                      hasInvalidLink ? "badge-link-error" : "badge-link-hint"
+                    }
                     className="neon-input w-full rounded-lg px-4 py-2.5 text-base transition"
                     style={{
                       background: 'rgba(255,255,255,0.05)',
@@ -410,8 +420,16 @@ export default function Home() {
                       color: 'var(--foreground)',
                     }}
                   />
-                  <p className="mt-1.5 text-xs" style={{ color: 'rgba(148,163,184,0.6)' }}>
-                    ถ้าใส่ จะได้ Markdown แบบคลิกได้ (ครอบด้วยลิงก์)
+                  <p
+                    id={hasInvalidLink ? "badge-link-error" : "badge-link-hint"}
+                    role={hasInvalidLink ? "alert" : undefined}
+                    className={`mt-1.5 text-xs ${
+                      hasInvalidLink ? "text-rose-300" : "text-slate-400"
+                    }`}
+                  >
+                    {hasInvalidLink
+                      ? "กรุณาใส่ URL http:// หรือ https:// ที่ไม่มี username/password ฝังอยู่"
+                      : "ถ้าใส่ จะได้ Markdown แบบคลิกได้ (ครอบด้วยลิงก์)"}
                   </p>
                 </div>
               </>
@@ -546,14 +564,27 @@ export default function Home() {
               </div>
             ) : null}
 
+            {hasInvalidLink ? (
+              <p className="mt-3 text-sm text-rose-300" role="alert">
+                แก้ URL ปลายทางให้ถูกต้องก่อนคัดลอกหรือดาวน์โหลด Markdown
+              </p>
+            ) : null}
+
             <pre className="neon-code mt-3 overflow-x-auto rounded-lg p-3 text-xs leading-relaxed whitespace-pre-wrap">
               <code>{snippet}</code>
             </pre>
+            {!isSplit || outputTab === "react" ? (
+              <p className="mt-2 text-xs text-slate-400">
+                React snippet เป็นตัวอย่างการเรียกใช้ component
+                ต้องเพิ่ม source จาก <code>components/tag</code> และ <code>lib</code>
+                ในโปรเจกต์ก่อน
+              </p>
+            ) : null}
 
             <div className="mt-4 flex flex-col gap-2 sm:flex-row">
               <button
                 onClick={handleCopy}
-                disabled={isEmpty}
+                disabled={isEmpty || hasInvalidLink}
                 className="neon-btn-primary inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {isCopied ? (
@@ -565,7 +596,7 @@ export default function Home() {
               </button>
               <button
                 onClick={handleDownload}
-                disabled={isEmpty}
+                disabled={isEmpty || hasInvalidLink}
                 className="neon-btn-secondary inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <Download className="size-4" />

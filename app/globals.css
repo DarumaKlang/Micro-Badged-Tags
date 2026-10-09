@@ -229,3 +229,14 @@ body {
   border-color: rgba(191, 90, 242, 0.35);
   color: rgba(226, 232, 240, 0.9);
 }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
